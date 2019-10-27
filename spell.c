@@ -6,6 +6,30 @@
 #include <assert.h>
 #include "dictionary.h"
 
+/*
+char* format(char* word){
+    //return "test";
+    int word_length = strlen(word);
+    char formatted[LENGTH+1];
+    for (int i = 0; i < word_length; i++)
+    {
+        // if end of word is punctuation, skip
+        if ((i + 1) == word_length) {
+            if ((word[i] == ',') || (word[i] == '.') || (word[i] == ';')
+                || (word[i] == ':') || (word[i] == '!') || (word[i] == '?'))
+                word_length--;
+        }
+        // if uppercase, convert to lowercase
+        else if(isupper(word[i]))
+            formatted[i] = tolower(word[i]) ;
+        else
+            formatted[i] = word[i];
+    }
+    formatted[word_length] = '\0';
+    return formatted;
+} // end format
+*/
+
 bool load_dictionary(const char* dictionary_file, hashmap_t hashtable[]) {
     int word_count = 0;
     // initialize each value in hash table to NULL
@@ -17,7 +41,8 @@ bool load_dictionary(const char* dictionary_file, hashmap_t hashtable[]) {
         return false;
     }
     //char buffer[LENGTH+1];
-    char buffer[LENGTH*2];
+    //char buffer[LENGTH*2];
+    char buffer[LENGTH*20000];
     // while not end of file
     while (fscanf(word_list, "%s", buffer) > 0) {
     //while ((fscanf(word_list, "%s", buffer) > 0) && (word_count < HASH_SIZE)) {
@@ -27,24 +52,25 @@ bool load_dictionary(const char* dictionary_file, hashmap_t hashtable[]) {
             strcpy(new_node->word, buffer);
             int bucket = hash_function(new_node->word);
             // if first node in bucket
-            if (hashtable[bucket] == NULL)
-                hashtable[bucket] = new_node;
-            else
-            {
-                new_node->next = hashtable[bucket];
-                hashtable[bucket] = new_node;
+            if (bucket >= 0 && bucket < HASH_SIZE) {
+                if (hashtable[bucket] == NULL)
+                    hashtable[bucket] = new_node;
+                else
+                {
+                    new_node->next = hashtable[bucket];
+                    hashtable[bucket] = new_node;
+                }
             }
             word_count++;
-            /*
-            if (word_count == HASH_SIZE) {
-                fclose(word_list);
-            	//printf("%d words in dictionary\n", word_count);
-                return true;
-            }
-            */
+            //if (word_count == HASH_SIZE) {
+//            if (word_count == HASH_SIZE * 500) {
+  //              fclose(word_list);
+                //printf("Maximum %d words in dictionary\n", word_count);
+    //            return true;
+      //      }
         } // end if
         //else
-        //    printf("Dictionary word too long: %s\n", buffer);
+            //printf("Dictionary word too long: %s\n", buffer);
     } // end while
     //printf("%d words in dictionary\n", word_count);
     fclose(word_list);
@@ -54,7 +80,7 @@ bool load_dictionary(const char* dictionary_file, hashmap_t hashtable[]) {
 bool check_word(const char* word, hashmap_t hashtable[]) {
     int word_length = strlen(word);
     if (word_length > LENGTH) {
-        //printf("Input overflow: %s\n", word);
+        //printf("check_word input overflow: %s\n", word);
         return false;
     }
     //char lowercase[LENGTH+1];
@@ -108,14 +134,14 @@ bool check_word(const char* word, hashmap_t hashtable[]) {
     //}
     //lowercase[word_length] = '\0';
     int bucket = hash_function(lowercase);
-    node* current = hashtable[bucket];
-    // search until end of linked list
-    while (current != NULL)
-    {
-        if (strcmp(lowercase, current->word) == 0)
-            // word found
-            return true;
-        current = current->next;
+    if (bucket >= 0 && bucket < HASH_SIZE) {
+        node* current = hashtable[bucket];
+        // search until end of linked list
+        while (current != NULL) {
+            if (strcmp(lowercase, current->word) == 0)
+                return true;    // word found
+            current = current->next;
+        }
     }
     //printf("misspelled word: %s\n", lowercase);
     return false;
@@ -123,13 +149,14 @@ bool check_word(const char* word, hashmap_t hashtable[]) {
 
 int check_words(FILE* fp, hashmap_t hashtable[], char* misspelled[]) {
     int misspelled_count = 0;
-    char *output[MAX_MISSPELLED];
+    //char *output[MAX_MISSPELLED];
     //FILE* check = fopen(fp, "r");
     //fopen(fp, "r");
     //if (fp == NULL)
     //    printf("Failure loading input file");
     //char buffer[LENGTH+1];
-    char buffer[LENGTH*2];
+    //char buffer[LENGTH*2];
+    char buffer[LENGTH*20000];
     //while (fscanf(check, "%s", buffer) > 0)
     //while (fscanf(fp, "%s", buffer) > 0)
     //while (fgets(buffer, LENGTH, (FILE*)fp) > 0) {
@@ -140,6 +167,7 @@ int check_words(FILE* fp, hashmap_t hashtable[], char* misspelled[]) {
         //if (buffer[strlen(buffer-1)] == ',' || '.')
         //    buffer[strlen(buffer-1)] = '\0';
         //printf("%s\n", buffer);
+        if (strlen(buffer) <= LENGTH) {
         if (!check_word(buffer, hashtable)) {
             //char copy[LENGTH+1];
             char copy[strlen(buffer)];
@@ -188,11 +216,19 @@ int check_words(FILE* fp, hashmap_t hashtable[], char* misspelled[]) {
             //printf("%s\n", output[misspelled_count]);
             misspelled_count++;
         } // end if
+        } // end if
+        //else
+            //printf("Input file word too long: %s\n", buffer);
+        //if (misspelled_count > 2) {
+        //    printf("Maximum %d misspelled words reached\n", misspelled_count);
+        //    return misspelled_count;
+        //}
+
     } // end while
     //fclose(check);
     //fclose(fp);
     //printf("%d misspelled words\n", misspelled_count);
-//    for (int i = 0; i < misspelled_count; i++)
-//        printf("%d %s\n", i, misspelled[i]);
+    //for (int i = 0; i < misspelled_count; i++)
+        //printf("%d %s\n", i, misspelled[i]);
     return misspelled_count;
 } // end check_word
